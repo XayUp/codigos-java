@@ -1,19 +1,16 @@
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 
 public class App {
     final static int KEYLED_COUNT = 0;
@@ -23,148 +20,182 @@ public class App {
     final static int PROJECT_AUTHOR = 4;
     final static int PROJECT_ENTRY = 5;
     final static int PROJECT_ROOT = 6;
+    final static int ZIP_DIR = 7;
 
-    public static ZipInputStream zIS;
+    final static String PACK1 = "C:\\Mobile\\Unipack\\Sideways.zip";
+    final static String PACK2 = "C:\\Mobile\\Unipack\\RISE (ft. The Glitch Mob, Mako, and The Word Alive).zip";
+    final static String PACK3 = "C:\\Mobile\\Unipack\\projetos teste.zip";
+    final static String OUTPUT = "C:\\Mobile\\Unipack\\outputs_zip";
 
     public static void main(String[] args) {
-        final String PACK1 = "C:\\Mobile\\Unipack\\Sideways.zip";
-        final String PACK2 = "C:\\Mobile\\Unipack\\RISE (ft. The Glitch Mob, Mako, and The Word Alive).zip";
-        final String PACK3 = "C:\\Mobile\\Unipack\\projetos teste.zip";
-        final String OUTPUT = "C:\\Mobile\\Unipack\\outputs_zip";
+        getProjectsFromZip(new String[] { PACK1, PACK2, PACK3 });
+    }
+
+    public static void getProjectsFromZip(String[] zip_dirs /* Diretório(s) do(s) Zip(s) */) {
+        Map<String, Map<Integer, Object>> projects = new HashMap<>();
 
         ZipFile mZipFile;
-        Enumeration<? extends ZipEntry> enums;
         ZipEntry mZipEntry;
+        Enumeration<? extends ZipEntry> enums;
 
-        Map<String, Map<Integer, Object>> projects;
+        String zip_file_name;
+        String project_name;
+        String parent_folder_name;
+        String file_name;
+        String project;
+        String parent_folder;
+        String root_project;
+        File entry_file;
 
-        try {
-            mZipFile = new ZipFile(PACK2);
-            enums = mZipFile.entries();
-            projects = new HashMap<>();
+        // Temporários
+        int sound_count;
+        int led_count;
+        ZipEntry tmp_entry;
 
-            String zip_file_name = getZipName(mZipFile);
-            String project_name;
-            String parent_folder_name;
-            String file_name;
-            String project;
-            String parent_folder;
-            String file;
-            String root_project;
-            File entry_file;
-            File entry_file_name;
+        for (String zip : zip_dirs) {
+            try {
+                mZipFile = new ZipFile(zip);
+                enums = mZipFile.entries();
+                zip_file_name = getZipName(mZipFile);
 
-            int sound_count;
-            int led_count;
-
-            ZipEntry tmp_entry;
-
-            System.out.println(zip_file_name);
-            nextElement: while (enums.hasMoreElements()) {
-                mZipEntry = enums.nextElement();
-                entry_file = new File(mZipEntry.getName());
-                file_name = entry_file.getName();
-                parent_folder = entry_file.getParent();
-                /*
-                 * Definir as variáveis para facilmente detectar uma Unipack
-                 */
-                if (parent_folder == null) {
-                    project_name = zip_file_name;
-                    parent_folder_name = "";
-                    root_project = "";
-                    parent_folder = "";
-                } else {
-                    parent_folder_name = new File(parent_folder).getName();
-                    project = new File(parent_folder).getParent();
-                    parent_folder = parent_folder.replace(File.separator, "/");
-                    root_project = parent_folder + "/";
-                    System.out.println("root project: " + root_project);
-                    if (mZipFile.getEntry(root_project + "Info") == null &&
-                            mZipFile.getEntry(root_project + "info") == null) {
-                        if (project == null) {
-                            project_name = zip_file_name;
-                            root_project = "";
-                        } else {
-                            project_name = project.substring(project.lastIndexOf(File.separator) + 1);
-                            project = project.replace(File.separator, "/");
-                            root_project = project + "/";
-                        }
+                nextElement: while (enums.hasMoreElements()) {
+                    mZipEntry = enums.nextElement();
+                    entry_file = new File(mZipEntry.getName());
+                    file_name = entry_file.getName();
+                    parent_folder = entry_file.getParent();
+                    /*
+                     * Definir as variáveis para facilmente detectar uma Unipack
+                     */
+                    if (parent_folder == null) {
+                        project_name = zip_file_name;
+                        parent_folder_name = "";
+                        root_project = "";
+                        parent_folder = "";
                     } else {
-                        project_name = new File(root_project).getName();
-                    }
-                }
-                System.out
-                        .println("File: " + file_name + ", Parent: " + parent_folder_name + ", Project: " + project_name
-                                + ", Project root: " + root_project);
-                /*
-                 * Não tenho interesse se for uma pasta. Caso seja um arquivo
-                 */
-                tmp_entry = (mZipFile.getEntry(root_project + "Info") != null)
-                        ? mZipFile.getEntry(root_project + "Info")
-                        : mZipFile.getEntry(root_project + "info");
-                System.out.println(mZipEntry);
-                if (mZipEntry.isDirectory()) {
-                    continue nextElement;
-                }
-                /*
-                 * Verifique se isto é um projeto Unipad para apresentar na explorador
-                 */
-
-                if (tmp_entry != null) {
-                    if (!root_project.equals("") && !new File(root_project).getName().equalsIgnoreCase(project_name)) {
-                        project_name = new File(root_project).getName();
-                    }
-                    if (projects.containsKey(project_name)) {
-                        ((ArrayList<ZipEntry>) projects.get(project_name).get(PROJECT_ENTRY)).add(mZipEntry);
-                    } else {
-                        ArrayList<ZipEntry> entry_list = new ArrayList<>();
-                        entry_list.add(mZipEntry);
-                        Map<Integer, Object> project_properties = new HashMap<>();
-                        InputStream mIS = mZipFile.getInputStream(tmp_entry);
-                        InputStreamReader mISR = new InputStreamReader(mIS, "UTF-8");
-                        Scanner mS = new Scanner(mISR);
-                        String title = "";
-                        String producerName = "";
-                        String line;
-                        while (mS.hasNextLine()) {
-                            line = mS.nextLine().trim();
-                            if (line.indexOf("title") == 0) {
-                                title = line.substring(line.indexOf("=") + 1).trim();
-                            } else if (line.indexOf("producerName") == 0) {
-                                producerName = line.substring(line.indexOf("=") + 1).trim();
+                        parent_folder_name = new File(parent_folder).getName();
+                        project = new File(parent_folder).getParent();
+                        parent_folder = parent_folder.replace(File.separator, "/");
+                        root_project = parent_folder + "/";
+                        if (mZipFile.getEntry(root_project + "Info") == null &&
+                                mZipFile.getEntry(root_project + "info") == null) {
+                            if (project == null) {
+                                project_name = zip_file_name;
+                                root_project = "";
+                            } else {
+                                project_name = project.substring(project.lastIndexOf(File.separator) + 1);
+                                project = project.replace(File.separator, "/");
+                                root_project = project + "/";
                             }
-                            if (!title.equals("") && !producerName.equals(""))
-                                break;
+                        } else {
+                            project_name = new File(root_project).getName();
                         }
-                        project_properties.put(PROJECT_NAME, (String) title);
-                        project_properties.put(PROJECT_AUTHOR, (String) producerName);
-                        project_properties.put(PROJECT_ROOT, (String) root_project);
-                        project_properties.put(KEYLED_COUNT, (int) 0);
-                        project_properties.put(SOUNDS_COUNT, (int) 0);
-                        project_properties.put(PROJECT_FILE_COUNT, (int) 0);
-                        project_properties.put(PROJECT_ENTRY, (ArrayList<ZipEntry>) entry_list);
-                        projects.put(project_name, project_properties);
+                    }
+                    if (mZipEntry.isDirectory()) {
+                        /*
+                         * Não tenho interesse se for uma pasta. Caso seja um arquivo
+                         */
+                        continue nextElement;
+                    }
+                    /*
+                     * Verifique se isto é um projeto Unipad para apresentar na explorador
+                     */
+                    tmp_entry = (mZipFile.getEntry(root_project + "Info") != null)
+                            ? mZipFile.getEntry(root_project + "Info")
+                            : mZipFile.getEntry(root_project + "info");
+                    if (tmp_entry != null) {
+                        if (!root_project.equals("")
+                                && !new File(root_project).getName().equalsIgnoreCase(project_name)) {
+                            project_name = new File(root_project).getName();
+                        }
+                        if (!projects.containsKey(project_name)) {
+                            /*
+                             * Arquivo é criada um mapa para o projeto contendo:
+                             * Número de leds, número de samples, nome do projeto (Info), nome do(s) autor(es)(Info)
+                             * localização do arquivo zip, o diretório root dentro do zip do projeto, quantidade de
+                             * arquivos no diretório do projeto e a lista dos diretórios a partir do diretório do projeto 
+                             */
+                            ArrayList<ZipEntry> entry_list = new ArrayList<>();
+                            Map<Integer, Object> project_properties = new HashMap<>();
+                            InputStream mIS = mZipFile.getInputStream(tmp_entry);
+                            InputStreamReader mISR = new InputStreamReader(mIS, "UTF-8");
+                            Scanner mS = new Scanner(mISR);
+                            String title = "";
+                            String producerName = "";
+                            String line;
+                            while (mS.hasNextLine()) {
+                                /*
+                                 * Processo para ler o arquivo "info" deretamente do zip.
+                                 * Útil para apresentar o nome e autor do projeto
+                                 */
+                                line = mS.nextLine().trim();
+                                if (line.indexOf("title") == 0) {
+                                    title = line.substring(line.indexOf("=") + 1).trim();
+                                } else if (line.indexOf("producerName") == 0) {
+                                    producerName = line.substring(line.indexOf("=") + 1).trim();
+                                }
+                                if (!title.equals("") && !producerName.equals(""))
+                                    break;
+                            }
+                            mS.close();
+                            mISR.close();
+                            mIS.close();
+                            project_properties.put(PROJECT_NAME, title);
+                            project_properties.put(PROJECT_AUTHOR, producerName);
+                            project_properties.put(PROJECT_ROOT, root_project);
+                            project_properties.put(ZIP_DIR, mZipFile.getName());
+                            project_properties.put(KEYLED_COUNT, 0);
+                            project_properties.put(SOUNDS_COUNT, 0);
+                            project_properties.put(PROJECT_FILE_COUNT, 0);
+                            project_properties.put(PROJECT_ENTRY, entry_list);
+                            projects.put(project_name, project_properties);
+                        }
+                        /*
+                         * Adicione os arquivos ao mapa pois este é uma Unipack
+                         * Verifique se é arquivo de led/som e adicione +1 se for verdade
+                         */
+                        ((ArrayList<ZipEntry>) projects.get(project_name).get(PROJECT_ENTRY)).add(mZipEntry);
+                        /*
+                         * Verifique se o arquivo atual é uma sample ou uma led.
+                         * Se sim, acrecente +1 na contagem
+                         * Verificação da led: Estrutura padrão é "0 0 0 0" e verifique
+                         * se a pasta pai começa com "keyled".
+                         * Verificação da sample: Extenção mais comum em Unipack são ".wav" e ".mp3"
+                         * e verifique se a pasta pais se chama "sounds".
+                         */
+                        if (file_name.matches("\\d\\s\\d\\s\\d\\s\\d.*")
+                                && parent_folder_name.toLowerCase().indexOf("keyled") == 0) {
+                            led_count = (int) projects.get(project_name).get(KEYLED_COUNT);
+                            led_count++;
+                            projects.get(project_name).put(KEYLED_COUNT, (int) led_count);
+                        } else if (file_name.matches("(.*\\.wav|.*\\.mp3)")
+                                && parent_folder_name.equalsIgnoreCase("sounds")) {
+                            sound_count = (int) projects.get(project_name).get(SOUNDS_COUNT);
+                            sound_count++;
+                            projects.get(project_name).put(SOUNDS_COUNT, (int) sound_count);
+                        }
                     }
                 }
-
-            }
-            System.out.println(projects.keySet());
-            for (String key : projects.keySet()) {
-                System.out.println(key + " -> [" + "Name: " + projects.get(key).get(PROJECT_NAME) + ", Author(s): "
-                        + projects.get(key).get(PROJECT_AUTHOR) + "]");
-                System.out.println(projects.get(key).get(PROJECT_ENTRY));
-            }
-            //Remova-os no app final
-            zIS = new ZipInputStream(new FileInputStream(mZipFile.getName()));
-            System.out.println("Tentar extrair unipack(s) de " + mZipFile.getName());
-            writeAllProject(mZipFile, projects, OUTPUT);
-        } catch (
-
-        IOException io) {
-            for (StackTraceElement s : io.getStackTrace()) {
-                System.out.println(s.toString());
+            } catch (IOException io) {
+                // Arquivo zip não existe
+                for (StackTraceElement s : io.getStackTrace()) {
+                    System.out.println(s.toString());
+                }
             }
         }
+        // Remova-os no app final v
+
+        System.out.println("Project count: " + projects.keySet().size() + "\n");
+        for (String key : projects.keySet()) {
+            System.out.println("Name: " + projects.get(key).get(PROJECT_NAME) + "\nAuthor(s): "
+                    + projects.get(key).get(PROJECT_AUTHOR) + "\n" +
+                    "Project files: " + ((ArrayList<ZipEntry>) projects.get(key).get(PROJECT_ENTRY)).size() + "\n"
+                    + "Led count: " + projects.get(key).get(KEYLED_COUNT) + "\n" +
+                    "Sounds count: " + projects.get(key).get(SOUNDS_COUNT) + "\n ---------------------------");
+        }
+        writeAllProject(projects, OUTPUT);
+
+        // Remova-os no app final ^
+
     }
 
     public static String getZipName(ZipFile zipfile) {
@@ -172,13 +203,41 @@ public class App {
                 zipfile.getName().lastIndexOf("."));
     }
 
-    public static void writeAllProject(ZipFile zipFile, Map<String, Map<Integer, Object>> projects, String output) {
-        for(String name : projects.keySet()){
-            writeProject(zipFile, projects.get(name), name, output);
+    public static void writeAllProject(Map<String, Map<Integer, Object>> projects, String output) {
+        /*
+         * A verificação de tamanho do mata que contém os projetos é quase inútil mas que fique aí.
+         * Obtenha cada mapa e chame writeProject() para fazer o resto.
+         */
+        if (projects.size() > 0) {
+            for (String name : projects.keySet()) {
+                try {
+                    writeProject(new ZipFile((String) projects.get(name).get(ZIP_DIR)), projects.get(name), name,
+                            output);
+                } catch (IOException io) {
+                    // Arquivo zip não existe ou foi movido após a leitura
+                }
+            }
         }
     }
 
     public static void writeProject(ZipFile zipFile, Map<Integer, Object> project, String name, String output) {
+        /*
+         * Isso irá "extrair" os arquivos do zipFile, obtendo os diretório que está em project com get(PROJECT_ENTRY).
+         * get(PROJECT_ENTRY) retorna uma lista dos diretório. Prefiro assim por ser mais fácil e também para facilitar
+         * a extração de múltiplos projetos sem precisar fazer a verificação novamente, buscar os arquivos certo, trabalho
+         * que getProjectsFromZip() já faz.
+         * root_entry é o diretório raíz de onde entá o arquivo "info", que indica que o projeto começa lá
+         * útil para quando o projeto está muito mais longe da ráiz que é "" no zip, como, por exemplo "pasta1/pasta2/pasta3/projeto"
+         * o nome da pasta "root_entry" é usado para criar a pasta no diretório de extração. Neste caso ficaria "<EXTRAC_TO_DIR>/projeto/"
+         * Após isso, esse detório é definido como a raíz para extração do demais arquivos contidos em root_entry
+         * O nome exato do arquivo será obtido pegando a entry e subtituindo a raíz no zip pela raíz da extração, ou seja:
+         * entry = "pasta1/pasta2/pasta3/projeto/info"
+         * root entry = "pasta1/pasta2/pasta3/projeto" (Raíz do projeto no zip)
+         * write_to = "<EXTRAC_TO_DIR>/" (Raiz de extração)
+         * Substituindo: 
+         * file_out = "<EXTRAC_TO_DIR>/projeto/info" 
+         * Verifique se a pasta pai existe e se não existe, então, crie-o (como "keyled" e "sounds").
+         */
         File write_to = new File(output + File.separator + name);
         String root_entry = (String) project.get(PROJECT_ROOT);
         ArrayList<ZipEntry> project_entrys = (ArrayList<ZipEntry>) project.get(PROJECT_ENTRY);
@@ -189,16 +248,14 @@ public class App {
         File file_out_parent;
         byte[] bytes = new byte[1024];
         int len;
-        System.out.println("Root: " + root_entry);
         for (ZipEntry entry : project_entrys) {
-            System.out.println("Tentando extrair: " + entry.getName());
             file_out = new File(write_to, entry.getName().replace(root_entry, ""));
             file_out_parent = file_out.getParentFile();
             if (!file_out_parent.exists()) {
                 file_out_parent.mkdirs();
             } else {
-                if(file_out.exists()){
-                    System.out.println("\"" + file_out.getName() + "\" já existe!");
+                if (file_out.exists()) {
+                    // Coloque aqui a operação de substituir, pular ou cancelar
                 }
             }
             try {
@@ -214,8 +271,7 @@ public class App {
             } catch (IOException io) {
             }
         }
-        //Extração concluida
-        zIS = null;
+        // Extração concluida
     }
 
 }
