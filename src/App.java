@@ -65,6 +65,10 @@ public class App {
                     parent_folder = entry_file.getParent();
                     /*
                      * Definir as variáveis para facilmente detectar uma Unipack
+                     * Verifique se o arquivo tem pasta pai. Se não houver então estamos na pasta raíz.
+                     * Caso haja verifique se ele o pai contém o arquivo "info". Se sim, defina as variáveis.
+                     * Se não, verifique se o pai tem pai. Se sim, o pai do pai será o nome do projeto
+                     * (mesmo que não tenha o "info" pois essa verificação é feita depois).
                      */
                     if (parent_folder == null) {
                         project_name = zip_file_name;
@@ -97,7 +101,7 @@ public class App {
                         continue nextElement;
                     }
                     /*
-                     * Verifique se isto é um projeto Unipad para apresentar na explorador
+                     * Verifique se isto é um projeto Unipad
                      */
                     tmp_entry = (mZipFile.getEntry(root_project + "Info") != null)
                             ? mZipFile.getEntry(root_project + "Info")
@@ -205,8 +209,9 @@ public class App {
 
     public static void writeAllProject(Map<String, Map<Integer, Object>> projects, String output) {
         /*
-         * A verificação de tamanho do mata que contém os projetos é quase inútil mas que fique aí.
+         * A verificação de tamanho do mapa que contém os projetos é quase inútil mas optei por deixar.
          * Obtenha cada mapa e chame writeProject() para fazer o resto.
+         * O nome da chave será o nome da pasta raiz do projeto.
          */
         if (projects.size() > 0) {
             for (String name : projects.keySet()) {
@@ -226,16 +231,16 @@ public class App {
          * get(PROJECT_ENTRY) retorna uma lista dos diretório. Prefiro assim por ser mais fácil e também para facilitar
          * a extração de múltiplos projetos sem precisar fazer a verificação novamente, buscar os arquivos certo, trabalho
          * que getProjectsFromZip() já faz.
-         * root_entry é o diretório raíz de onde entá o arquivo "info", que indica que o projeto começa lá
-         * útil para quando o projeto está muito mais longe da ráiz que é "" no zip, como, por exemplo "pasta1/pasta2/pasta3/projeto"
-         * o nome da pasta "root_entry" é usado para criar a pasta no diretório de extração. Neste caso ficaria "<EXTRAC_TO_DIR>/projeto/"
-         * Após isso, esse detório é definido como a raíz para extração do demais arquivos contidos em root_entry
+         * root_entry é o diretório raíz de onde está o arquivo "info", que indica que o projeto começa lá
+         * útil para quando o projeto está muito mais longe da ráiz, que é "" no zip, como, por exemplo, "pasta1/pasta2/pasta3/projeto"
+         * o nome da pasta "root_entry" é usado para criar a pasta no diretório de extração. Neste caso terá de ser "<EXTRAC_TO_DIR>/projeto/"
+         * Após isso, esse detório é definido como a raíz para extração do demais arquivos contidos em root_entry.
          * O nome exato do arquivo será obtido pegando a entry e subtituindo a raíz no zip pela raíz da extração, ou seja:
          * entry = "pasta1/pasta2/pasta3/projeto/info"
-         * root entry = "pasta1/pasta2/pasta3/projeto" (Raíz do projeto no zip)
+         * root_entry = "pasta1/pasta2/pasta3/projeto" (Raíz do projeto no zip)
          * write_to = "<EXTRAC_TO_DIR>/" (Raiz de extração)
-         * Substituindo: 
-         * file_out = "<EXTRAC_TO_DIR>/projeto/info" 
+         * Substituindo:
+         * file_out = em entry, substitua root_entry por write, resultando em "<EXTRAC_TO_DIR>/projeto/info" 
          * Verifique se a pasta pai existe e se não existe, então, crie-o (como "keyled" e "sounds").
          */
         File write_to = new File(output + File.separator + name);
@@ -259,6 +264,9 @@ public class App {
                 }
             }
             try {
+                /*
+                 * Preparação para extração e extração
+                 */
                 InputStream mIS = zipFile.getInputStream(entry);
                 FileOutputStream mFOS = new FileOutputStream(file_out);
                 while ((len = mIS.read(bytes)) >= 0) {
@@ -273,5 +281,4 @@ public class App {
         }
         // Extração concluida
     }
-
 }
